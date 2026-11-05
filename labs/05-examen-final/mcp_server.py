@@ -138,7 +138,7 @@ def registrar_nota(codigo: str, evaluacion: str, valor: float) -> dict[str, Any]
 #@mcp.resource("academico://calendario", description="Fechas clave del curso (parciales y proyecto final)")
 #def calendario() -> str:
 #    return "\n".join(f"{item['fecha']}: {item['evento']}" for item in DATA["calendario"])
-@mcp.tool(annotations=ToolAnnotations(readOnlyHint=False))
+@mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
 #@mcp.resource("academico://calendario", description="Fechas clave del curso (parciales y proyecto final)")
 def calendario() -> str:
     """Devuelve el calendario."""

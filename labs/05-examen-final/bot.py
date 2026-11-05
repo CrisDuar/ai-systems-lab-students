@@ -62,7 +62,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sessions.init_history(user_id)
     sessions.register(user_id)
 
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="Bienvenido al asistente del curso de inteligencia artificial!\nUtilice el comando /ayuda para ver los comandos disponibles.")
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Bienvenido al asistente del curso de inteligencia artificial desarrollado por Christian Duarte!\nUtilice el comando /ayuda para ver los comandos disponibles.")
 
 import asyncio
 import contextvars
@@ -87,8 +87,8 @@ async def telegram_confirm(tool, arguments) -> bool:
     
     keyboard = [
         [
-            InlineKeyboardButton("✅ Autorizar", callback_data=f"conf_yes_{user_id}"),
-            InlineKeyboardButton("❌ Rechazar", callback_data=f"conf_no_{user_id}"),
+            InlineKeyboardButton("Autorizar", callback_data=f"conf_yes_{user_id}"),
+            InlineKeyboardButton("Rechazar", callback_data=f"conf_no_{user_id}"),
         ]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
@@ -128,13 +128,13 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if user_id in pending_responses:
         if action == "yes":
-            await query.edit_message_text(text="✅ Acción autorizada. Ejecutando...")
+            await query.edit_message_text(text="Acción autorizada. Ejecutando...")
             pending_responses[user_id] = True
         else:
-            await query.edit_message_text(text="❌ Acción rechazada.")
+            await query.edit_message_text(text="Acción rechazada.")
             pending_responses[user_id] = False
     else:
-        await query.edit_message_text(text="ℹ️ Esta solicitud ya expiró.")
+        await query.edit_message_text(text="Esta solicitud ya expiró.")
 
 
 async def responses(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -150,8 +150,6 @@ async def responses(update: Update, context: ContextTypes.DEFAULT_TYPE):
     })
 
     try:
-        #history = sessions.get_user_history(user_id)
-        #role = sessions.get_user_data(user_id)["rol"]
         response = await ask_agent(question=question, user=user_id)
         response_txt = response.text
     finally:
@@ -291,8 +289,8 @@ async def verification(update: object, context: ContextTypes.DEFAULT_TYPE) -> No
                 "Inicio de sesión exitoso"
             )
 
-            sessions.login(update.effective_user.id)
-            await context.bot.send_message(chat_id=update.effective_chat.id, text="Se creó la sesión con éxito. Bienvenido.")
+            user_data = sessions.login(update.effective_user.id)
+            await context.bot.send_message(chat_id=update.effective_chat.id, text=f"Se creó la sesión con éxito. Bienvenido {user_data['nombre']}.")
         else:
             attempts_status = sessions.add_failed_attempt(update.effective_user.id)
 

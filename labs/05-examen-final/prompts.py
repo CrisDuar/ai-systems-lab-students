@@ -13,7 +13,7 @@ Novedad del Lab 04: un prompt por componente.
 from llm_client import Message
 
 PERSONA = """Eres el Asistente Inteligente del Curso de Inteligencia Artificial \
-de Ingeniería de Sistemas e Ingeniería de Software.
+de Ingeniería de Sistemas e Ingeniería de Software desarrollado por Christian Eduardo Duarte García
 
 Reglas generales:
 - Responde en español, de forma clara y concisa (máximo un párrafo, salvo que pidan más detalle).
