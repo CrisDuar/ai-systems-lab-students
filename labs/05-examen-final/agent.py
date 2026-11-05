@@ -120,7 +120,7 @@ class Agent:
                 else:
 
                     # Se implementa que se espere por confirmación
-                    if tool.read_only:
+                    if not tool.read_only:
                         accepted = await self.confirm(tool, call.arguments())
                         if not accepted:
                             step.tool_runs.append(ToolRun(call, "rechazada", REJECTED))

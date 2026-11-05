@@ -46,7 +46,9 @@ async def ask_agent(question: str, user):
     role = user_data["rol"]
     user_id = user_data["codigo_estudiante"]
 
-    orquestador.set_current_user(user_id)
+    print(f"User ID: {user_id}")
+
+    orquestador.set_current_user(str(user_id))
     response: OrchestratorAnswer = await orquestador.answer(question=question, history=history, mode="agente", role=role)
 
     return response

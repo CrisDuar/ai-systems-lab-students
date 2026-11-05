@@ -78,9 +78,9 @@ class VectorStore:
         best_chunk = self.chunks[top[0]]
         best_score = float(scores[top[0]])
 
-        if (not best_chunk.source.lower().startswith("publico/")):
-            if (not best_chunk.source.lower().startswith(f"{role}/")):
-                return [SearchResult(chunk=WARNING_CHUNK, score=best_score)]
+        #if (not best_chunk.source.lower().startswith("publico/")):
+        #    if (not best_chunk.source.lower().startswith(f"{role}/")):
+        #        return [SearchResult(chunk=WARNING_CHUNK, score=best_score)]
             
         valid_data = []
         for i in top:
@@ -88,7 +88,7 @@ class VectorStore:
             chunk = self.chunks[i]
             #valid_data.append(i)
             if (chunk.source.lower().startswith("publico/") or chunk.source.lower().startswith(f"{role}/")):
-                    valid_data.append(i)
+                valid_data.append(i)
 
         if (valid_data):
             return [SearchResult(chunk=self.chunks[i], score=float(scores[i])) for i in valid_data[:k]]

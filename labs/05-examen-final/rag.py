@@ -51,7 +51,7 @@ class CourseRAG:
         self.min_score = min_score
 
     def retrieve(self, question: str, role="user") -> list[SearchResult]:
-        query_vector = self.embedder.embed_query(f"{question} soy {role}")
+        query_vector = self.embedder.embed_query(f"{question} soy {role} y mi rol es {role}. Ten en cuenta que mi rol es {role} la informacion que te estoy pidiendo")
         results = self.store.search(query_vector, self.top_k, role)
         return [result for result in results if result.score >= self.min_score]
 

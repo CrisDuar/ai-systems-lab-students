@@ -52,7 +52,7 @@ def buscar_estudiante(codigo: str) -> dict[str, Any]:
 
 @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
 def consultar_mis_notas(codigo: str = "") -> dict[str, Any]:
-    """Consulta las notas registradas del estudiante autenticado actualmente en la sesión sin requerir parámetros. Utilizar cuando no se cuenta con el código del estudiante"""
+    """Consulta las notas registradas del estudiante autenticado actualmente en la sesión sin requerir parámetros. No utilizar cuando se especifique el código de estudiante, ya que se debe usar la herramienta consultar_notas para ello."""
     estudiante = buscar_estudiante(codigo)
     notas = estudiante["notas"]
     laboratorios = notas["laboratorios"]
@@ -65,7 +65,7 @@ def consultar_mis_notas(codigo: str = "") -> dict[str, Any]:
 
 @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
 def consultar_notas(codigo: CodigoEstudiante) -> dict[str, Any]:
-    """Consulta las notas registradas de un estudiante del curso. Sólo usar cuando se especifique el código.
+    """Consulta las notas registradas de un estudiante del curso. Sólo usar cuando se especifique el código. Sólo para uso de docentes.
 
     Una nota null significa que aún no está registrada. Incluye el promedio de los laboratorios.
     """
