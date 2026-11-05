@@ -34,6 +34,11 @@ LIMIT_MESSAGE = (
 
 REJECTED = "El usuario NO autorizó esta acción, así que no se ejecutó."
 
+ROLE_PERMISSIONS = {
+    "estudiante": ["fecha_actual", "dias_hasta", "consultar_notas", "consultar_solicitudes", "solicitar_supletorio", "buscar_documentos"],
+    "docente": ["fecha_actual", "dias_hasta", "consultar_notas", "buscar_documentos"],
+    "user": ["fecha_actual", "buscar_documentos"]
+}
 
 @dataclass
 class ToolRun:
@@ -65,9 +70,22 @@ class Agent:
         self.confirm = confirm
         self.max_steps = max_steps
 
-    async def run(self, question: str, history: list[Message] | None = None) -> AgentAnswer:
+        # Se establece el rol de la ejecución
+        self.current_role = "user"
+
+    def get_tools_for_role(self, role: str = "user") -> dict[str, Tool]:
+
+        allowed_names = ROLE_PERMISSIONS.get(role, [])
+        return {name: tool for name, tool in self.tools.items() if name in allowed_names}
+
+    async def run(self, question: str, history: list[Message] | None = None, role="user") -> AgentAnswer:
+
+        self.current_role = role
+
         messages = build_agent_messages(history or [], question)
-        definitions = [tool.definition() for tool in self.tools.values()]
+        current_tools = self.get_tools_for_role(role)
+        #definitions = [tool.definition() for tool in self.tools.values()]
+        definitions = [tool.definition() for tool in current_tools.values()]
         steps: list[AgentStep] = []
 
         for _ in range(self.max_steps):
@@ -89,7 +107,14 @@ class Agent:
 
             for call in response.tool_calls:
 
-                tool_run = await self.execute(call)
+                # Validación
+                tool = current_tools.get(call.name)
+                if tool is None:
+                    tool_run = ToolRun(call, "error", f"Error: no tienes permisos para usar la tool {call.name!r} o no existe.")
+                else:
+                    tool_run = await self.execute(call)
+                
+                #tool_run = await self.execute(call)
                 step.tool_runs.append(tool_run)
 
                 messages.append({

@@ -40,7 +40,8 @@ logging.basicConfig(
 async def ask_agent(question: str, user):
 
     history: List[Message] = sessions.get_user_history(user)
-    response: OrchestratorAnswer = await orquestador.answer(question=question, history=history, mode="agente")
+    role = sessions.get_user_data(user)["rol"]
+    response: OrchestratorAnswer = await orquestador.answer(question=question, history=history, mode="agente", role=role)
 
     return response
 

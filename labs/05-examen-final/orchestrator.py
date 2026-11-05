@@ -59,13 +59,14 @@ class Orchestrator:
         self.llm = llm
         self.rag = rag
         # Modo agente: un solo agente con todas las capacidades.
-        self.agent = Agent(llm, [rag_tool(rag), *action_tools], confirm, max_steps)
+        # Se agregó una referencia al self.agent.current_role para que la tool lo pueda obtener sin recurrir a otras fuentes.
+        self.agent = Agent(llm, [rag_tool(rag, get_role=lambda: self.agent.current_role), *action_tools], confirm, max_steps)
         # Modo router, ruta "acciones": un agente solo con las tools de datos y acciones.
         self.actions_agent = Agent(llm, action_tools, confirm, max_steps)
 
-    async def answer(self, question: str, history: list[Message], mode: Mode) -> OrchestratorAnswer:
+    async def answer(self, question: str, history: list[Message], mode: Mode, role="user") -> OrchestratorAnswer:
         if mode == "agente":
-            return self._from_agent(await self.agent.run(question, history), mode)
+            return self._from_agent(await self.agent.run(question, history, role), mode)
 
         routing = route(self.llm, question)
         ruta = routing.decision.ruta
@@ -75,7 +76,7 @@ class Orchestrator:
             answer = OrchestratorAnswer(response.text, mode, responses=[response])
 
         elif (ruta == "documentos"):
-            rag_answer = self.rag.answer(question, history)
+            rag_answer = self.rag.answer(question, history, role)
 
             sources = sorted(list(set(source.chunk.source for source in rag_answer.sources)))
             responses=[rag_answer.response]
@@ -110,7 +111,8 @@ async def create_orchestrator(stack: AsyncExitStack, confirm: ConfirmFn) -> Orch
     rag_settings = load_rag_settings()
     
     # Ahora recibe todas las rutas configuradas para los embeddings
-    store = VectorStore.load_multiple(rag_settings.index_dir, rag_settings.document_paths)
+    #store = VectorStore.load_multiple(rag_settings.index_dir, rag_settings.document_paths)
+    store = VectorStore.load(rag_settings.index_dir)
 
     llm = LLMClient(settings)
     rag = CourseRAG(

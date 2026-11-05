@@ -27,7 +27,7 @@ class Chunk:
 
 def load_documents(data_dir: Path) -> list[Document]:
     paths = sorted(data_dir.rglob("*.md"))
-    return [Document(source=path.name, text=path.read_text(encoding="utf-8")) for path in paths]
+    return [Document(source=f"{path.parent.name}/{path.name}", text=path.read_text(encoding="utf-8")) for path in paths]
 
 
 def chunk_text(text: str, chunk_size: int, overlap: int) -> list[str]:

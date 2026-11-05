@@ -50,9 +50,9 @@ class CourseRAG:
         self.top_k = top_k
         self.min_score = min_score
 
-    def retrieve(self, question: str) -> list[SearchResult]:
-        query_vector = self.embedder.embed_query(question)
-        results = self.store.search(query_vector, self.top_k)
+    def retrieve(self, question: str, role="user") -> list[SearchResult]:
+        query_vector = self.embedder.embed_query(f"{question} soy {role}")
+        results = self.store.search(query_vector, self.top_k, role)
         return [result for result in results if result.score >= self.min_score]
 
     def answer(self, question: str, history: list[Message] | None = None) -> RAGAnswer:

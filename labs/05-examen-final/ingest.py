@@ -50,49 +50,7 @@ def main() -> None:
         print(f"[configuración] {exc}")
         return
 
-    for doc in settings.document_paths:
-
-        create_embeddings(settings.data_dir / doc, settings.index_dir / doc, settings.chunk_size, settings.chunk_overlap, settings.embedding_model)
-    """ 
-    show = "--show" in sys.argv
-    try:
-        settings = load_rag_settings()
-    except ValueError as exc:
-        print(f"[configuración] {exc}")
-        return
-
-    documents = load_documents(settings.data_dir / 'publico')
-
-    if not documents:
-        print(f"No hay documentos .md en {settings.data_dir}")
-        return
-
-    chunks = chunk_documents(documents, settings.chunk_size, settings.chunk_overlap)
-
-    print(
-        f"{len(documents)} documentos → {len(chunks)} chunks "
-        f"(chunk_size={settings.chunk_size}, overlap={settings.chunk_overlap} palabras)"
-    )
-
-    if show:
-        for chunk in chunks:
-            print(f"\n[{chunk.id}] ({len(chunk.text.split())} palabras)\n{chunk.text}")
-
-    print(f"\nCalculando embeddings con {settings.embedding_model} ...")
-
-    start = time.perf_counter()
-    embedder = Embedder(settings.embedding_model)
-    vectors = embedder.embed_documents([chunk.text for chunk in chunks])
-    elapsed = time.perf_counter() - start
-
-    print(f"{vectors.shape[0]} vectores de dimensión {vectors.shape[1]} en {elapsed:.1f} s")
-
-    store = VectorStore(settings.embedding_model)
-    store.add(chunks, vectors)
-    store.save(settings.index_dir)
-
-    print(f"Índice guardado en {settings.index_dir}")
-    """
+    create_embeddings(settings.data_dir, settings.index_dir, settings.chunk_size, settings.chunk_overlap, settings.embedding_model)
 
 
 if __name__ == "__main__":

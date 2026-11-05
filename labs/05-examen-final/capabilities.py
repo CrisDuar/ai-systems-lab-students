@@ -11,17 +11,17 @@ Uso (sin LLM ni API key; requiere el índice de ingest.py):
 
 import asyncio
 import sys
-from typing import Any
+from typing import Any, Callable
 
 from rag import CourseRAG, format_context
 from tools import Tool
 
 
-def rag_tool(rag: CourseRAG) -> Tool:
+def rag_tool(rag: CourseRAG, get_role: Callable[[], str]) -> Tool:
 
     async def rag_func(consulta: str):
 
-        resultados = rag.retrieve(consulta)
+        resultados = rag.retrieve(consulta, get_role())
         return format_context(resultados)
 
     return Tool(

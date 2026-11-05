@@ -18,6 +18,17 @@ from documents import Chunk
 VECTORS_FILE = "vectors.npy"
 CHUNKS_FILE = "chunks.json"
 
+WARNING_CHUNK = Chunk(
+    id="system#auth_required",
+    source="sistema_de_seguridad",
+    text=(
+        "[AVISO DEL SISTEMA]: La información solicitada corresponde a un documento "
+        "restringido al que este usuario no tiene acceso. Debes responderle de forma "
+        "amable que necesita iniciar sesión o autenticarse con el rol adecuado para "
+        "consultar este contenido, sin inventar respuestas ni revelar información protegida."
+    )
+)
+
 
 @dataclass
 class SearchResult:
@@ -48,13 +59,43 @@ class VectorStore:
         self._vectors = vectors if self._vectors is None else np.vstack([self._vectors, vectors])
         self.chunks.extend(chunks)
 
-    def search(self, query_vector: np.ndarray, k: int) -> list[SearchResult]:
-        """Devuelve los k fragmentos más parecidos a la consulta, del más al menos parecido."""
+    def search(self, query_vector: np.ndarray, k: int, role: str | None = None) -> list[SearchResult]:
+        """Devuelve los k fragmentos más parecidos a la consulta, del más al menos parecido.""" 
         if self._vectors is None:
             return []
-        scores = self._vectors @ normalize(query_vector)
+
+        print(f"ROL: {role}")
+
+        #Primero se busca en general para tener toda la información a la mano
+        query_vector = normalize(np.asarray(query_vector, dtype=np.float32))
+        scores = self._vectors @ query_vector#normalize(query_vector)
         top = np.argsort(scores)[::-1][:k]
-        return [SearchResult(chunk=self.chunks[i], score=float(scores[i])) for i in top]
+
+        if len(top) == 0:
+            return []
+
+        # Se revisa el mejor resultado para ver su origen y determinar si la información requiere permisos
+        best_chunk = self.chunks[top[0]]
+        best_score = float(scores[top[0]])
+
+        if (not best_chunk.source.lower().startswith("publico/")):
+            if (not best_chunk.source.lower().startswith(f"{role}/")):
+                return [SearchResult(chunk=WARNING_CHUNK, score=best_score)]
+            
+        valid_data = []
+        for i in top:
+            # Revisar si los chunks que se van a devolver deben ser accesibles por el rol o no
+            chunk = self.chunks[i]
+            #valid_data.append(i)
+            if (chunk.source.lower().startswith("publico/") or chunk.source.lower().startswith(f"{role}/")):
+                    valid_data.append(i)
+
+        if (valid_data):
+            return [SearchResult(chunk=self.chunks[i], score=float(scores[i])) for i in valid_data[:k]]
+        
+        best_score = float(scores[top[0]])
+        return [SearchResult(chunk=WARNING_CHUNK, score=best_score)]
+        return results
 
     def save(self, index_dir: Path) -> None:
         index_dir.mkdir(parents=True, exist_ok=True)

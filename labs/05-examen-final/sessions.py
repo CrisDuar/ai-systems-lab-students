@@ -42,12 +42,6 @@ def get_enrolled_user_data(telegram_id):
 def get_user_data(telegram_id):
     global sessions
     return sessions[telegram_id]
-    for u in users_data:
-
-        if (u["telegram_user_id"] == telegram_id):
-            return u
-
-    return None
 
 
 def add_failed_attempt(telegram_id):

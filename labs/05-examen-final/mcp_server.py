@@ -50,6 +50,18 @@ def buscar_estudiante(codigo: str) -> dict[str, Any]:
         raise ToolError(f"No existe un estudiante con código {codigo!r}.")
     return estudiante
 
+@mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
+def consultar_mis_notas(codigo: str) -> dict[str, Any]:
+    """Consulta las notas registradas del estudiante autenticado actualmente en la sesión."""
+    estudiante = buscar_estudiante(codigo)
+    notas = estudiante["notas"]
+    laboratorios = notas["laboratorios"]
+    return {
+        "codigo": codigo,
+        "nombre": estudiante["nombre"],
+        "notas": notas,
+        "promedio_laboratorios": round(sum(laboratorios) / len(laboratorios), 2) if laboratorios else None,
+    }
 
 @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
 def consultar_notas(codigo: CodigoEstudiante) -> dict[str, Any]:

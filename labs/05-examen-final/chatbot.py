@@ -76,7 +76,7 @@ def parse_mode(argv: list[str]) -> Mode:
     return "agente"
 
 
-async def chat(orchestrator: Orchestrator, mode: Mode, debug: bool) -> None:
+async def chat(orchestrator: Orchestrator, mode: Mode, debug: bool, role="user") -> None:
     history: list[Message] = []
     while True:
         try:
@@ -107,7 +107,7 @@ async def chat(orchestrator: Orchestrator, mode: Mode, debug: bool) -> None:
             continue
 
         try:
-            answer = await orchestrator.answer(user_input, history, mode)
+            answer = await orchestrator.answer(user_input, history, mode, role)
         except LLMError as exc:
             print(f"\n[error] {exc}\n")
             continue
@@ -126,6 +126,16 @@ async def chat(orchestrator: Orchestrator, mode: Mode, debug: bool) -> None:
 
 async def main() -> None:
     debug = "--debug" in sys.argv
+    est = "--estudiante" in sys.argv
+    doc = "--docente" in sys.argv
+
+    role = "user"
+    if (est):
+        role = "estudiante"
+    elif (doc):
+        role = "docente"
+    
+
     try:
         mode = parse_mode(sys.argv)
     except ValueError as exc:
@@ -151,7 +161,9 @@ async def main() -> None:
         print("Capacidades:")
         print_tools(list(orchestrator.agent.tools.values()))
         print("Comandos: /modo agente|router  /tools  /reiniciar  /salir\n")
-        await chat(orchestrator, mode, debug)
+
+        print(f"EL ROL PARA INICIAR EL CHAT ES {role}")
+        await chat(orchestrator, mode, debug, role)
 
 if __name__ == "__main__":
     asyncio.run(main())
