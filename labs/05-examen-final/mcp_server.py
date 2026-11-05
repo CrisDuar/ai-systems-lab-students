@@ -51,8 +51,8 @@ def buscar_estudiante(codigo: str) -> dict[str, Any]:
     return estudiante
 
 @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
-def consultar_mis_notas(codigo: str) -> dict[str, Any]:
-    """Consulta las notas registradas del estudiante autenticado actualmente en la sesión."""
+def consultar_mis_notas(codigo: str = "") -> dict[str, Any]:
+    """Consulta las notas registradas del estudiante autenticado actualmente en la sesión sin requerir parámetros. Utilizar cuando no se cuenta con el código del estudiante"""
     estudiante = buscar_estudiante(codigo)
     notas = estudiante["notas"]
     laboratorios = notas["laboratorios"]
@@ -65,18 +65,20 @@ def consultar_mis_notas(codigo: str) -> dict[str, Any]:
 
 @mcp.tool(annotations=ToolAnnotations(readOnlyHint=True))
 def consultar_notas(codigo: CodigoEstudiante) -> dict[str, Any]:
-    """Consulta las notas registradas de un estudiante del curso.
+    """Consulta las notas registradas de un estudiante del curso. Sólo usar cuando se especifique el código.
 
     Una nota null significa que aún no está registrada. Incluye el promedio de los laboratorios.
     """
     estudiante = buscar_estudiante(codigo)
     notas = estudiante["notas"]
     laboratorios = notas["laboratorios"]
+    observaciones_docente = estudiante["observaciones_docente"]
     return {
         "codigo": codigo,
         "nombre": estudiante["nombre"],
         "notas": notas,
         "promedio_laboratorios": round(sum(laboratorios) / len(laboratorios), 2) if laboratorios else None,
+        "observaciones_docente": observaciones_docente,
     }
 
 
@@ -114,11 +116,34 @@ def solicitar_supletorio(
     SOLICITUDES.append(solicitud)
     return solicitud
 
+@mcp.tool()
+def registrar_nota(codigo: str, evaluacion: str, valor: float) -> dict[str, Any]:
+    """Registra o actualiza la nota de una evaluación específica para un estudiante dado su código."""
+    estudiante = buscar_estudiante(codigo)
+    if not estudiante:
+        raise ValueError(f"No se encontró un estudiante con el código {codigo}")
+    
+    # Ejemplo de registro
+    estudiante["notas"][evaluacion] = valor
+    #guardar_cambios_estudiantes() # Tu función de persistencia
+    DATA_FILE.write_text(json.dumps(DATA, ensure_ascii=False, indent=2), encoding="utf-8")
 
-@mcp.resource("academico://calendario", description="Fechas clave del curso (parciales y proyecto final)")
+    return {
+        "status": "success",
+        "codigo": codigo,
+        "evaluacion": evaluacion,
+        "nuevo_valor": valor
+    }
+
+#@mcp.resource("academico://calendario", description="Fechas clave del curso (parciales y proyecto final)")
+#def calendario() -> str:
+#    return "\n".join(f"{item['fecha']}: {item['evento']}" for item in DATA["calendario"])
+@mcp.tool(annotations=ToolAnnotations(readOnlyHint=False))
+#@mcp.resource("academico://calendario", description="Fechas clave del curso (parciales y proyecto final)")
 def calendario() -> str:
-    return "\n".join(f"{item['fecha']}: {item['evento']}" for item in DATA["calendario"])
+    """Devuelve el calendario."""
 
+    return "\n".join(f"{item['fecha']}: {item['evento']}" for item in DATA["calendario"])
 
 if __name__ == "__main__":
     if "--http" in sys.argv:

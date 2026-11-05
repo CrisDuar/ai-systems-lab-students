@@ -64,6 +64,11 @@ class Orchestrator:
         # Modo router, ruta "acciones": un agente solo con las tools de datos y acciones.
         self.actions_agent = Agent(llm, action_tools, confirm, max_steps)
 
+        self.current_user = None
+
+    def set_current_user(self, user: str):
+        self.current_user = user
+
     async def answer(self, question: str, history: list[Message], mode: Mode, role="user") -> OrchestratorAnswer:
         if mode == "agente":
             return self._from_agent(await self.agent.run(question, history, role), mode)
@@ -124,5 +129,20 @@ async def create_orchestrator(stack: AsyncExitStack, confirm: ConfirmFn) -> Orch
         min_score=rag_settings.min_score,
     )
     mcp_client = await open_client(stack)
-    action_tools = [*LOCAL_TOOLS, *await load_mcp_tools(mcp_client)]
-    return Orchestrator(llm, rag, action_tools, confirm)
+
+    # Para agregar la referencia a la tool que no recibe nada de forma directa
+    orchestrator_ref = [None] # Referencia mutable para el closure
+    
+    def get_user_code():
+        id =  orchestrator_ref[0].current_user if orchestrator_ref[0] else None
+        if not id:
+            return None
+        
+        return id
+
+    action_tools = [*LOCAL_TOOLS, *await load_mcp_tools(mcp_client, get_user_code=get_user_code)]
+
+    orchestrator = Orchestrator(llm, rag, action_tools, confirm)
+    orchestrator_ref[0] = orchestrator
+    #action_tools = [*LOCAL_TOOLS, *await load_mcp_tools(mcp_client)]
+    return orchestrator

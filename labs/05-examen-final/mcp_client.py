@@ -18,7 +18,7 @@ import json
 import sys
 from contextlib import AsyncExitStack
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from mcp import Client, StdioServerParameters
 from mcp.types import CallToolResult
@@ -46,11 +46,19 @@ def result_to_text(result: CallToolResult) -> str:
         raise ToolExecutionError(text)
     return text
 
-
-def to_tool(client: Client, mcp_tool: MCPTool) -> Tool:
+# Otra vez hay que usar un callback igual que con el RAG
+def to_tool(client: Client, mcp_tool: MCPTool, get_user_code: Callable[[], Any]) -> Tool:
     """Adaptador: definición MCP → Tool (la misma clase que usan las tools locales)."""
 
     async def run(arguments: dict[str, Any]) -> str:
+
+        # Si la herramienta es la de notas del usuario autenticado, inyectamos su código de sesión
+        if mcp_tool.name == "consultar_mis_notas":
+            code = get_user_code()
+            if not code or code == -1:
+                return "Error: No has iniciado sesión o tu usuario no tiene un código de estudiante asociado. Utiliza /login."
+            arguments["codigo"] = code
+
         result = await client.call_tool(mcp_tool.name, arguments)
         return result_to_text(result)
 
@@ -66,9 +74,9 @@ def to_tool(client: Client, mcp_tool: MCPTool) -> Tool:
     )
 
 
-async def load_mcp_tools(client: Client) -> list[Tool]:
+async def load_mcp_tools(client: Client, get_user_code: Callable[[], Any] | None = None) -> list[Tool]:
     listed = await client.list_tools()
-    return [to_tool(client, mcp_tool) for mcp_tool in listed.tools]
+    return [to_tool(client, mcp_tool, get_user_code) for mcp_tool in listed.tools]
 
 
 async def read_resource_text(client: Client, uri: str) -> str:

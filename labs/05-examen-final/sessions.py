@@ -178,4 +178,4 @@ def add_history_message(telegram_id, message):
     if (len(histories) > 15):
         histories[telegram_id].pop()
 
-    histories[telegram_id].append({"role": role, "content": message})
+    histories[telegram_id].append({"role": "user", "content": message})

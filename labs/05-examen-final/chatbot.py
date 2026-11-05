@@ -107,6 +107,7 @@ async def chat(orchestrator: Orchestrator, mode: Mode, debug: bool, role="user")
             continue
 
         try:
+            orchestrator.set_current_user("551542")
             answer = await orchestrator.answer(user_input, history, mode, role)
         except LLMError as exc:
             print(f"\n[error] {exc}\n")

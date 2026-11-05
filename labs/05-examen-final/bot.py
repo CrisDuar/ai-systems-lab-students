@@ -10,8 +10,8 @@ import liveness
 from llm_client import Message
 import logs
 import sessions
-from telegram import Update
-from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler,  MessageHandler, filters
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.ext import ApplicationBuilder, CallbackQueryHandler, ContextTypes, CommandHandler,  MessageHandler, filters
 from dotenv import load_dotenv
 
 from orchestrator import OrchestratorAnswer, create_orchestrator, Orchestrator
@@ -40,7 +40,13 @@ logging.basicConfig(
 async def ask_agent(question: str, user):
 
     history: List[Message] = sessions.get_user_history(user)
-    role = sessions.get_user_data(user)["rol"]
+
+    user_data = sessions.get_user_data(user)
+
+    role = user_data["rol"]
+    user_id = user_data["codigo_estudiante"]
+
+    orquestador.set_current_user(user_id)
     response: OrchestratorAnswer = await orquestador.answer(question=question, history=history, mode="agente", role=role)
 
     return response
@@ -49,7 +55,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     ## Crear el objeto del orquestador
     global orquestador
-    orquestador = await create_orchestrator(AsyncExitStack(), True)
+    orquestador = await create_orchestrator(AsyncExitStack(), confirm=telegram_confirm)
 
     # Inicializa el historial del usuario concreto
     user_id = update.effective_user.id
@@ -58,13 +64,101 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await context.bot.send_message(chat_id=update.effective_chat.id, text="Bienvenido al asistente del curso de inteligencia artificial!\nUtilice el comando /ayuda para ver los comandos disponibles.")
 
+import asyncio
+import contextvars
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.ext import ContextTypes
+
+# Contexto para rastrear a qué chat y bot pertenece la ejecución actual
+telegram_context_var = contextvars.ContextVar("telegram_context", default=None)
+# Almacena los futuros pendientes por usuario para resolverlos al hacer clic en el botón
+# Un diccionario simple para guardar respuestas: { user_id: True/False/None }
+pending_responses = {}
+
+async def telegram_confirm(tool, arguments) -> bool:
+    ctx = telegram_context_var.get()
+    if not ctx:
+        return True  
+        
+    bot, chat_id, user_id = ctx["bot"], ctx["chat_id"], int(ctx["user_id"])
+    
+    # Marcamos inicialmente como pendiente (None)
+    pending_responses[user_id] = None
+    
+    keyboard = [
+        [
+            InlineKeyboardButton("✅ Autorizar", callback_data=f"conf_yes_{user_id}"),
+            InlineKeyboardButton("❌ Rechazar", callback_data=f"conf_no_{user_id}"),
+        ]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    await bot.send_message(
+        chat_id=chat_id,
+        text=f"⚠️ La herramienta *{tool.name}* requiere tu autorización.\nParámetros: `{arguments}`",
+        reply_markup=reply_markup,
+        parse_mode="Markdown"
+    )
+    
+    # Esperamos activamente hasta que el usuario presione el botón (máx 5 minutos)
+    timeout = 300
+    elapsed = 0
+    while pending_responses.get(user_id) is None:
+        await asyncio.sleep(1)
+        elapsed += 1
+        if elapsed >= timeout:
+            pending_responses.pop(user_id, None)
+            return False
+            
+    # Obtenemos el resultado y limpiamos
+    result = pending_responses.pop(user_id)
+    return result
+
+async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    data = query.data
+    # Extraemos el usuario y la acción del callback_data (ej: conf_yes_123456)
+    try:
+        action, user_id_str = data.split("_")[1], data.split("_")[2]
+        user_id = int(user_id_str)
+    except IndexError:
+        return
+
+    if user_id in pending_responses:
+        if action == "yes":
+            await query.edit_message_text(text="✅ Acción autorizada. Ejecutando...")
+            pending_responses[user_id] = True
+        else:
+            await query.edit_message_text(text="❌ Acción rechazada.")
+            pending_responses[user_id] = False
+    else:
+        await query.edit_message_text(text="ℹ️ Esta solicitud ya expiró.")
+
+
 async def responses(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_id = update.effective_user.id
-
     question: str = update.message.text
-    response: OrchestratorAnswer = await ask_agent(question=question, user=user_id)
-    response_txt = response.text
+
+    # Fijamos el contexto de Telegram actual para que la confirmación sepa a dónde responder
+    token = telegram_context_var.set({
+        "bot": context.bot,
+        "chat_id": update.effective_chat.id,
+        "user_id": user_id
+    })
+
+    try:
+        #history = sessions.get_user_history(user_id)
+        #role = sessions.get_user_data(user_id)["rol"]
+        response = await ask_agent(question=question, user=user_id)
+        response_txt = response.text
+    finally:
+        telegram_context_var.reset(token)
+
+    #response: OrchestratorAnswer = await ask_agent(question=question, user=user_id)
+    #response_txt = response.text
 
     sessions.add_history_message(user_id, response_txt)
 
@@ -231,7 +325,15 @@ if __name__ == '__main__':
 
     ## Iniciar la aplicación
 
-    application = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
+    application = (
+        ApplicationBuilder()
+        .token(TELEGRAM_BOT_TOKEN)
+        .concurrent_updates(4)
+        .build()
+    )
+
+    buttons_confirmation_handler = CallbackQueryHandler(button_callback)
+    application.add_handler(buttons_confirmation_handler)
     
     start_handler = CommandHandler('start', start)
     application.add_handler(start_handler)

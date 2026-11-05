@@ -35,9 +35,9 @@ LIMIT_MESSAGE = (
 REJECTED = "El usuario NO autorizó esta acción, así que no se ejecutó."
 
 ROLE_PERMISSIONS = {
-    "estudiante": ["fecha_actual", "dias_hasta", "consultar_notas", "consultar_solicitudes", "solicitar_supletorio", "buscar_documentos"],
-    "docente": ["fecha_actual", "dias_hasta", "consultar_notas", "buscar_documentos"],
-    "user": ["fecha_actual", "buscar_documentos"]
+    "estudiante": ["calendario", "consultar_mis_notas", "fecha_actual", "dias_hasta", "solicitar_supletorio", "buscar_documentos"],
+    "docente": ["calendario", "fecha_actual", "dias_hasta", "consultar_notas", "buscar_documentos", "consultar_solicitudes", "registrar_nota"],
+    "user": ["calendario", "fecha_actual", "buscar_documentos"]
 }
 
 @dataclass
@@ -72,6 +72,12 @@ class Agent:
 
         # Se establece el rol de la ejecución
         self.current_role = "user"
+        # Se establece el usuario de la ejecución
+        self.current_user_id = None
+
+        # Para las preguntas que requieran confirmación
+        requires_confirmation: bool = False 
+        pending_tool_call: Any = None
 
     def get_tools_for_role(self, role: str = "user") -> dict[str, Tool]:
 
@@ -112,6 +118,14 @@ class Agent:
                 if tool is None:
                     tool_run = ToolRun(call, "error", f"Error: no tienes permisos para usar la tool {call.name!r} o no existe.")
                 else:
+
+                    # Se implementa que se espere por confirmación
+                    if tool.read_only:
+                        accepted = await self.confirm(tool, call.arguments())
+                        if not accepted:
+                            step.tool_runs.append(ToolRun(call, "rechazada", REJECTED))
+                            continue
+                        
                     tool_run = await self.execute(call)
                 
                 #tool_run = await self.execute(call)
