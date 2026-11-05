@@ -15,6 +15,8 @@ from documents import chunk_documents, load_documents
 from embeddings import Embedder
 from vector_store import VectorStore
 
+from evaluate_face_threshold import evaluate_far_frr
+
 DOCUMENTS_PATHS = [
     'publico',
     'restringido/docente',
@@ -50,8 +52,13 @@ def main() -> None:
         print(f"[configuración] {exc}")
         return
 
-    create_embeddings(settings.data_dir, settings.index_dir, settings.chunk_size, settings.chunk_overlap, settings.embedding_model)
+    #create_embeddings(settings.data_dir, settings.index_dir, settings.chunk_size, settings.chunk_overlap, settings.embedding_model)
 
+    resultado = evaluate_far_frr(
+    r"rostros\9062983711.npy",
+        target_far=0.05,  # opcional: limitar FAR al 5 %
+    )
+    print(resultado)
 
 if __name__ == "__main__":
     main()
