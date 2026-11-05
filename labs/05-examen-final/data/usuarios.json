@@ -3,17 +3,17 @@
   "usuarios": [
     {
       "id": "integrante_1",
-      "nombre": "<INTEGRANTE_1>",
+      "nombre": "Christian Eduardo Duarte Garcia",
       "rol": "estudiante",
-      "codigo_estudiante": "<CODIGO_1>",
-      "telegram_user_id": null
+      "codigo_estudiante": 551542,
+      "telegram_user_id": 9062983711
     },
     {
       "id": "integrante_2",
-      "nombre": "<INTEGRANTE_2>",
+      "nombre": "Eduard Alejandro Mojica Cruz",
       "rol": "docente",
       "codigo_estudiante": null,
-      "telegram_user_id": null
+      "telegram_user_id": 9145484361
     }
   ]
 }

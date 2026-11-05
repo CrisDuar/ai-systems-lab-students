@@ -15,3 +15,8 @@ index/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+modelos/
+face_enroll/
+rostros/
+auditoria*.jsonl
